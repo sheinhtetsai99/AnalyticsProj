@@ -1,0 +1,4 @@
+,model_name,model_type,expected_return,portfolio_volatility,sharpe_ratio,num_assets_selected
+0,etf_basic_mv,mean-variance,0.009873308123333624,0.03322313462658624,0.2971817149195994,
+1,etf_constrained_mv,constrained-mean-variance,0.00654150045688983,0.030398645054650633,0.21519052724651153,
+2,etf_integer_mv,integer-constrained,0.0063921903317810886,0.02920209590998338,0.21889491601853747,6.0

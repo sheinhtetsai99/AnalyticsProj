@@ -731,7 +731,7 @@ class PortfolioBuilder:
         
         return fig
     
-    def generate_report(self, model_names=None, output_file=None):
+    def generate_report(self, model_names=None, output_file=None, output_dir=None):
         """
         Generate a comprehensive report on the models.
         
@@ -741,22 +741,43 @@ class PortfolioBuilder:
             Names of models to include. If None, use all solved models
         output_file : str, optional
             Path to save the report. If None, print to console
+        output_dir : str, optional
+            Directory to save accompanying charts. If None, use same directory as output_file
             
         Returns:
         --------
         str
             Report content
         """
+        import os
+        import matplotlib.pyplot as plt
+        
         # If no model names provided, use all solved models
         if model_names is None:
             model_names = [name for name, model in self.models.items() 
-                          if model.solution is not None]
+                        if model.solution is not None]
             
         # Generate report
         report = []
         report.append("# Portfolio Optimization Report")
         report.append(f"Generated on {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
         report.append("")
+        
+        # Set up output directory for charts if report is being saved
+        charts_dir = None
+        if output_file:
+            # If output_dir provided, use it, otherwise derive from output_file
+            if output_dir:
+                charts_dir = output_dir
+            else:
+                charts_dir = os.path.dirname(output_file)
+                if not charts_dir:  # If output_file is just a filename with no directory
+                    charts_dir = '.'
+                    
+            # Create charts subdirectory
+            charts_dir = os.path.join(charts_dir, 'report_charts')
+            if not os.path.exists(charts_dir):
+                os.makedirs(charts_dir)
         
         # Asset information
         report.append("## Asset Information")
@@ -766,6 +787,22 @@ class PortfolioBuilder:
         for asset, ret in top_returns.items():
             report.append(f"- {asset}: {ret:.2%}")
         report.append("")
+        
+        # Create and save assets chart if we have output directory
+        if charts_dir:
+            plt.figure(figsize=(10, 6))
+            bars = plt.bar(self.asset_names, self.expected_returns)
+            plt.xticks(rotation=45, ha='right')
+            plt.title('Expected Returns by Asset')
+            plt.ylabel('Expected Return')
+            plt.tight_layout()
+            assets_chart_path = os.path.join(charts_dir, 'asset_returns.png')
+            plt.savefig(assets_chart_path)
+            plt.close()
+            
+            # Add the chart to the report
+            report.append(f"![Asset Returns]({os.path.join('report_charts', 'asset_returns.png')})")
+            report.append("")
         
         # Model comparison
         report.append("## Model Comparison")
@@ -836,6 +873,22 @@ class PortfolioBuilder:
                 report.append("No non-zero weights found.")
             report.append("")
             
+            # Create and save portfolio weights chart
+            if charts_dir:
+                plt.figure(figsize=(10, 6))
+                non_zero_weights.sort_values(ascending=False).plot(kind='bar')
+                plt.title(f'Portfolio Weights - {name}')
+                plt.ylabel('Weight')
+                plt.xticks(rotation=45, ha='right')
+                plt.tight_layout()
+                weights_chart_path = os.path.join(charts_dir, f'{name}_weights.png')
+                plt.savefig(weights_chart_path)
+                plt.close()
+                
+                # Add the chart to the report
+                report.append(f"![Portfolio Weights]({os.path.join('report_charts', f'{name}_weights.png')})")
+                report.append("")
+            
             # Constraints
             if hasattr(model, 'constraints_added'):
                 active_constraints = [c for c, v in model.constraints_added.items() if v]
@@ -852,7 +905,23 @@ class PortfolioBuilder:
                     for constraint in active_int_constraints:
                         report.append(f"- {constraint}")
                     report.append("")
-            
+        
+        # Add efficient frontier to report if we have output directory
+        if charts_dir:
+            try:
+                plt.figure(figsize=(10, 6))
+                ef_fig = self.plot_efficient_frontier()
+                plt.title("Efficient Frontier")
+                ef_chart_path = os.path.join(charts_dir, 'efficient_frontier.png')
+                plt.savefig(ef_chart_path)
+                plt.close()
+                
+                report.append("## Efficient Frontier")
+                report.append(f"![Efficient Frontier]({os.path.join('report_charts', 'efficient_frontier.png')})")
+                report.append("")
+            except Exception as e:
+                print(f"Warning: Could not generate efficient frontier chart: {e}")
+        
         # Join report lines
         report_text = "\n".join(report)
         
