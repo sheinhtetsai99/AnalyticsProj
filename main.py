@@ -105,7 +105,7 @@ def fetch_etf_data(start_date=None, end_date=None):
     
     print(f"Fetching ETF data from {start_date.date()} to {end_date.date()} (10-year period)")
     
-    # Define ETFs by asset class
+    # Define ETFs by asset class - CORRECTLY MAPPED
     etfs = {
         # Equities by Region
         'SPY': 'US Equities',          # S&P 500
@@ -159,37 +159,70 @@ def generate_sample_data(n_assets=12, n_periods=120):  # 10 years of monthly dat
     """Generate sample return data for testing if fetching real data fails"""
     print("Generating synthetic data as fallback (10 years of monthly data)...")
     
-    # Create ETF names and asset classes
+    # Create ETF names and asset classes - CORRECTLY MAPPED
     etfs = {
-        'SPY': 'US Equities', 'VGK': 'European Equities', 'EEM': 'Emerging Markets', 'VPL': 'Asia-Pacific',
-        'AGG': 'US Aggregate Bonds', 'TLT': 'Long-Term Treasury', 'LQD': 'Corporate Bonds', 'BNDX': 'International Bonds',
-        'GLD': 'Gold', 'SLV': 'Silver', 'VNQ': 'Real Estate', 'GSG': 'Commodities'
+        'SPY': 'US Equities', 
+        'VGK': 'European Equities', 
+        'EEM': 'Emerging Markets', 
+        'VPL': 'Asia-Pacific',
+        'AGG': 'US Aggregate Bonds', 
+        'TLT': 'Long-Term Treasury', 
+        'LQD': 'Corporate Bonds', 
+        'BNDX': 'International Bonds',
+        'GLD': 'Gold', 
+        'SLV': 'Silver', 
+        'VNQ': 'Real Estate', 
+        'GSG': 'Commodities'
     }
     
     tickers = list(etfs.keys())[:n_assets]
     asset_class_mapping = pd.Series({ticker: etfs[ticker] for ticker in tickers})
     
-    # Create random expected returns by asset class
+    # Create random expected returns by asset class (more realistic)
     expected_monthly_returns = {
-        'US Equities': 0.007, 'European Equities': 0.006, 'Emerging Markets': 0.008, 'Asia-Pacific': 0.006,
-        'US Aggregate Bonds': 0.002, 'Long-Term Treasury': 0.0015, 'Corporate Bonds': 0.0025, 'International Bonds': 0.001,
-        'Gold': 0.003, 'Silver': 0.004, 'Real Estate': 0.005, 'Commodities': 0.002
+        'US Equities': 0.007, 
+        'European Equities': 0.006, 
+        'Emerging Markets': 0.008, 
+        'Asia-Pacific': 0.006,
+        'US Aggregate Bonds': 0.002, 
+        'Long-Term Treasury': 0.0015, 
+        'Corporate Bonds': 0.0025, 
+        'International Bonds': 0.001,
+        'Gold': 0.003, 
+        'Silver': 0.004, 
+        'Real Estate': 0.005, 
+        'Commodities': 0.002
     }
     
-    # Create random volatilities by asset class
+    # Create random volatilities by asset class (more realistic)
     volatilities = {
-        'US Equities': 0.04, 'European Equities': 0.05, 'Emerging Markets': 0.06, 'Asia-Pacific': 0.05,
-        'US Aggregate Bonds': 0.01, 'Long-Term Treasury': 0.02, 'Corporate Bonds': 0.015, 'International Bonds': 0.012,
-        'Gold': 0.05, 'Silver': 0.08, 'Real Estate': 0.05, 'Commodities': 0.07
+        'US Equities': 0.04, 
+        'European Equities': 0.05, 
+        'Emerging Markets': 0.06, 
+        'Asia-Pacific': 0.05,
+        'US Aggregate Bonds': 0.01, 
+        'Long-Term Treasury': 0.02, 
+        'Corporate Bonds': 0.015, 
+        'International Bonds': 0.012,
+        'Gold': 0.05, 
+        'Silver': 0.08, 
+        'Real Estate': 0.05, 
+        'Commodities': 0.07
     }
     
-    # Generate synthetic data - details omitted for brevity
-    # See full implementation in previous code
-    
-    # Placeholder implementation - simplified for brevity
+    # Generate synthetic data with realistic correlations and returns
     dates = pd.date_range(end=datetime.now(), periods=n_periods, freq='M')
-    returns_data = pd.DataFrame(np.random.normal(0.005, 0.03, (n_periods, n_assets)), 
-                               index=dates, columns=tickers)
+    
+    # Use the expected returns and volatilities to generate data
+    returns_data = pd.DataFrame(index=dates, columns=tickers)
+    
+    for ticker in tickers:
+        asset_class = etfs[ticker]
+        mu = expected_monthly_returns[asset_class]
+        sigma = volatilities[asset_class]
+        returns_data[ticker] = np.random.normal(mu, sigma, n_periods)
+    
+    # Generate price data from returns
     prices_data = (1 + returns_data).cumprod() * 100
     
     print(f"Generated synthetic data for {n_assets} ETFs with {n_periods} periods (10 years)")
@@ -197,7 +230,7 @@ def generate_sample_data(n_assets=12, n_periods=120):  # 10 years of monthly dat
     return returns_data, prices_data, asset_class_mapping
 
 def main():
-    # Create the streamlined directory structure
+    # Create the streamlined directory structure (unchanged)
     dirs = create_streamlined_structure('portfolio_results')
     
     try:
@@ -212,13 +245,14 @@ def main():
     # Create a portfolio builder
     builder = PortfolioBuilder(returns_df)
     
-    # Print asset statistics
+    # Print asset statistics - FIX THE STATS CREATION TO PROPERLY ALIGN ASSET CLASSES
     annual_returns = returns_df.mean() * 12  # Annualize monthly returns
     annual_volatility = returns_df.std() * np.sqrt(12)  # Annualize volatility
     
     print("\nAsset Statistics (10-Year Performance):")
+    # Fixed version that ensures proper alignment of asset classes with tickers
     stats_df = pd.DataFrame({
-        'Asset_Class': asset_class_mapping.values,
+        'Asset_Class': asset_class_mapping.reindex(annual_returns.index).values,  # Properly align with annual_returns index
         'Annual_Return': annual_returns.values,
         'Annual_Volatility': annual_volatility.values,
         'Sharpe_Ratio': annual_returns.values / annual_volatility.values
@@ -231,7 +265,7 @@ def main():
     stats_df.to_csv(stats_file)
     print(f"Asset statistics saved to {stats_file}")
     
-    # Step 1: Basic Mean-Variance Optimization
+    # Step 1: Basic Mean-Variance Optimization 
     print("\nStep 1: Basic Mean-Variance Optimization")
     mv_model = builder.create_mean_variance_model(risk_aversion=2.0, model_name="etf_basic_mv")
     mv_model.build_model()
@@ -241,11 +275,11 @@ def main():
     print(f"Volatility: {mv_solution['portfolio_volatility']:.4f}")
     print(f"Sharpe Ratio: {mv_solution['sharpe_ratio']:.4f}")
     
-    # Get weights and show them with asset classes
+    # Get weights and show them with asset classes - FIXED TO PROPERLY ALIGN ASSET CLASSES
     weights = mv_model.get_weights()
     weights_with_class = pd.DataFrame({
         'Weight': weights,
-        'Asset_Class': asset_class_mapping.reindex(weights.index).values
+        'Asset_Class': asset_class_mapping.reindex(weights.index).values  # Properly align with weights index
     })
     
     print("\nPortfolio Allocation:")
@@ -263,12 +297,12 @@ def main():
     plt.close()
     print(f"Basic MV weights plot saved to {weights_plot_file}")
     
-    # Step 2: Add Asset Class Constraints
+    # Step 2: Add Asset Class Constraints 
     print("\nStep 2: Add Asset Class Constraints")
     
-    # Define asset class groups
+    # Define asset class groups - FIXED TO USE PROPER ASSET CLASS NAMES
     asset_classes = {
-        'Equities': [t for t, c in asset_class_mapping.items() if 'Equities' in c],
+        'Equities': [t for t, c in asset_class_mapping.items() if any(x in c for x in ['Equities', 'Markets'])],
         'Fixed Income': [t for t, c in asset_class_mapping.items() if any(x in c for x in ['Bond', 'Treasury'])],
         'Alternatives': [t for t, c in asset_class_mapping.items() if any(x in c for x in ['Gold', 'Silver', 'Real Estate', 'Commodities'])]
     }
@@ -308,11 +342,11 @@ def main():
     print(f"Volatility: {constrained_solution['portfolio_volatility']:.4f}")
     print(f"Sharpe Ratio: {constrained_solution['sharpe_ratio']:.4f}")
     
-    # Get weights and show them with asset classes
+    # Get weights and show them with asset classes - FIXED FOR PROPER ALIGNMENT
     constrained_weights = constrained_model.get_weights()
     constrained_weights_with_class = pd.DataFrame({
         'Weight': constrained_weights,
-        'Asset_Class': asset_class_mapping.reindex(constrained_weights.index).values
+        'Asset_Class': asset_class_mapping.reindex(constrained_weights.index).values  # Properly align with weights index
     })
     
     print("\nConstrained Portfolio Allocation:")
@@ -356,11 +390,11 @@ def main():
     print(f"Number of assets: {integer_solution['num_assets_selected']}")
     print(f"Selected assets: {integer_solution['selected_asset_names']}")
     
-    # Get weights and show them with asset classes
+    # Get weights and show them with asset classes - FIXED FOR PROPER ALIGNMENT
     integer_weights = integer_model.get_weights()
     integer_weights_with_class = pd.DataFrame({
         'Weight': integer_weights,
-        'Asset_Class': asset_class_mapping.reindex(integer_weights.index).values
+        'Asset_Class': asset_class_mapping.reindex(integer_weights.index).values  # Properly align with weights index
     })
     
     print("\nInteger-Constrained Portfolio Allocation (Simplified 6-ETF Portfolio):")
@@ -436,7 +470,7 @@ def main():
         
         # Compare asset performance across periods
         performance_comparison = pd.DataFrame({
-            'Asset_Class': asset_class_mapping.values,
+            'Asset_Class': asset_class_mapping.reindex(first_period_returns.index).values,  # FIXED for proper alignment
             'First_5yr_Return': first_period_returns.values,
             'Second_5yr_Return': second_period_returns.values if len(second_period) > 0 else np.nan,
             'Return_Difference': (second_period_returns - first_period_returns).values if len(second_period) > 0 else np.nan
