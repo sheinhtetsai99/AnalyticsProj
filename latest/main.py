@@ -456,7 +456,7 @@ def print_asset_descriptions():
 def main():
     # Define parameters
     tickers = ['SPY', 'QQQ', 'VWRA.L', 'VGK', 'EEM', 'VPL', 'AGG', 'TLT', 'LQD', 'GLD', 'SLV', 'VNQ', 'GSG']
-    start_date = '2010-01-01'
+    start_date = '2006-10-03'
     end_date = '2024-12-31'
     
     # Define risk-free rate (annual)
