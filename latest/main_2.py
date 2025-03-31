@@ -122,12 +122,12 @@ def load_portfolio_weights(filename="optimal_portfolio.json"):
         print(f"File {filename} not found. No portfolio data loaded.")
         return None
 
-# 4. Enhanced Portfolio Optimization with practical constraints
-def optimize_enhanced_portfolio(returns, cov_matrix, initial_weights=None, 
-                              risk_free_rate=0.03, max_assets=8, 
-                              sector_limits=None, min_position=0.02):
+# 4. Generate Enhanced Efficient Frontier with constraints
+def generate_enhanced_efficient_frontier(returns, cov_matrix, initial_weights=None, 
+                                     risk_free_rate=0.03, max_assets=8, 
+                                     sector_limits=None, min_position=0.02, points=20):
     """
-    Optimize portfolio with practical constraints:
+    Generate efficient frontier with practical constraints:
     - Cardinality constraint (maximum number of assets)
     - Minimum position size (if invested)
     - Sector concentration limits
@@ -137,13 +137,14 @@ def optimize_enhanced_portfolio(returns, cov_matrix, initial_weights=None,
     - returns: Expected annual returns for each asset
     - cov_matrix: Covariance matrix of returns
     - initial_weights: Current portfolio weights (for calculating transaction costs)
-    - risk_free_rate: Annual risk-free rate (default: 3%)
-    - max_assets: Maximum number of assets to include (cardinality constraint)
-    - sector_limits: Dictionary of maximum allocation per sector (e.g., {'Equities': 0.6})
-    - min_position: Minimum position size if invested in an asset
+    - risk_free_rate: Annual risk-free rate
+    - max_assets: Maximum number of assets
+    - sector_limits: Dictionary of maximum allocation per sector
+    - min_position: Minimum position size
+    - points: Number of points on the efficient frontier
     
     Returns:
-    - Dictionary of asset weights, return, risk, sharpe ratio, and metrics
+    - List of portfolio dictionaries along the efficient frontier
     """
     n = len(returns)  # Number of assets
     assets = returns.index.tolist()
@@ -160,130 +161,162 @@ def optimize_enhanced_portfolio(returns, cov_matrix, initial_weights=None,
     if initial_weights is None:
         initial_weights = pd.Series(0, index=assets)
     
-    print("\n=== Optimizing Enhanced Portfolio ===")
+    # Determine return range for efficient frontier
+    min_return = min(returns) * 0.8  # Allow slightly lower than min asset return
+    max_return = max(returns) * 0.9  # Slightly less than max asset return for feasibility
     
-    # Create optimization model
-    m = Model("Enhanced_Portfolio_Optimization")
-    m.setParam('OutputFlag', 0)  # Suppress Gurobi output
+    # Generate target returns for efficient frontier
+    target_returns = np.linspace(min_return, max_return, points)
     
-    # Add continuous variables for portfolio weights
-    x = m.addVars(assets, lb=0, name="weights")
+    print("\n=== Generating Enhanced Efficient Frontier ===")
+    print(f"Return range: {min_return:.4%} to {max_return:.4%}")
+    print(f"Constraints: Max {max_assets} assets, Min position {min_position:.1%}, with sector limits and transaction costs")
     
-    # Add binary variables for asset selection
-    z = m.addVars(assets, vtype=GRB.BINARY, name="selection")
+    efficient_portfolios = []
+    sharpe_ratios = []
     
-    # Add variables for transaction costs
-    tc = m.addVars(assets, lb=0, name="transaction_costs")
-    
-    # Constraint: Weights sum to 1 (fully invested)
-    m.addConstr(quicksum(x[asset] for asset in assets) == 1, "budget")
-    
-    # Cardinality constraint: Limit number of assets
-    m.addConstr(quicksum(z[asset] for asset in assets) <= max_assets, "max_assets")
-    
-    # Minimum position size constraint
-    for asset in assets:
-        m.addConstr(x[asset] <= z[asset], f"select_{asset}")  # Can only invest if selected
-        m.addConstr(x[asset] >= min_position * z[asset], f"min_pos_{asset}")  # Minimum position if selected
-    
-    # Sector constraints
-    for sector, sector_assets in SECTORS.items():
-        sector_assets_in_model = [a for a in sector_assets if a in assets]
-        if sector_assets_in_model:  # Only add constraint if sector assets are in our universe
-            m.addConstr(
-                quicksum(x[asset] for asset in sector_assets_in_model) <= sector_limits[sector],
-                f"sector_{sector}"
-            )
-    
-    # Transaction costs (absolute difference between new and initial weights)
-    for asset in assets:
-        # Linearize absolute difference |x[asset] - initial_weights[asset]|
-        m.addConstr(tc[asset] >= x[asset] - initial_weights[asset], f"tc_pos_{asset}")
-        m.addConstr(tc[asset] >= initial_weights[asset] - x[asset], f"tc_neg_{asset}")
-    
-    # Calculate total transaction cost
-    total_tc = quicksum(tc[asset] * TRANSACTION_COSTS[asset] / 100 for asset in assets)
-    
-    # Portfolio variance (quadratic objective)
-    portfolio_variance = quicksum(
-        x[i] * x[j] * cov_matrix.loc[i, j] for i in assets for j in assets
-    )
-    
-    # Set objective: Maximize Sharpe Ratio approximated by minimizing variance 
-    # for a given target return, accounting for transaction costs
-    target_return = 0.10  # 10% target annual return
-    m.addConstr(
-        quicksum(returns[asset] * x[asset] for asset in assets) - total_tc >= target_return,
-        "target_return"
-    )
-    
-    # Objective: Minimize risk
-    m.setObjective(portfolio_variance, GRB.MINIMIZE)
-    
-    # Optimize the model
-    try:
-        m.optimize()
+    for i, target_return in enumerate(target_returns):
+        print(f"\nOptimizing for target return {target_return:.4%} (point {i+1}/{points})...")
         
-        if m.status == GRB.OPTIMAL:
-            # Extract the optimal weights
-            optimal_weights = pd.Series({asset: x[asset].X for asset in assets})
+        # Create optimization model
+        m = Model("Enhanced_Efficient_Frontier")
+        m.setParam('OutputFlag', 0)  # Suppress Gurobi output
+        
+        # Add variables (weights, selection, transaction costs)
+        x = m.addVars(assets, lb=0, name="weights")
+        z = m.addVars(assets, vtype=GRB.BINARY, name="selection")
+        tc = m.addVars(assets, lb=0, name="transaction_costs")
+        
+        # Constraint: Weights sum to 1 (fully invested)
+        m.addConstr(quicksum(x[asset] for asset in assets) == 1, "budget")
+        
+        # Cardinality constraint: Limit number of assets
+        m.addConstr(quicksum(z[asset] for asset in assets) <= max_assets, "max_assets")
+        
+        # Minimum position size constraint
+        for asset in assets:
+            m.addConstr(x[asset] <= z[asset], f"select_{asset}")  # Can only invest if selected
+            m.addConstr(x[asset] >= min_position * z[asset], f"min_pos_{asset}")  # Minimum position if selected
+        
+        # Sector constraints
+        for sector, sector_assets in SECTORS.items():
+            sector_assets_in_model = [a for a in sector_assets if a in assets]
+            if sector_assets_in_model:  # Only add constraint if sector assets are in our universe
+                m.addConstr(
+                    quicksum(x[asset] for asset in sector_assets_in_model) <= sector_limits[sector],
+                    f"sector_{sector}"
+                )
+        
+        # Transaction costs (absolute difference between new and initial weights)
+        for asset in assets:
+            m.addConstr(tc[asset] >= x[asset] - initial_weights[asset], f"tc_pos_{asset}")
+            m.addConstr(tc[asset] >= initial_weights[asset] - x[asset], f"tc_neg_{asset}")
+        
+        # Calculate total transaction cost
+        total_tc = quicksum(tc[asset] * TRANSACTION_COSTS[asset] / 100 for asset in assets)
+        
+        # Target return constraint with transaction costs
+        m.addConstr(
+            quicksum(returns[asset] * x[asset] for asset in assets) - total_tc >= target_return,
+            "target_return"
+        )
+        
+        # Portfolio variance (quadratic objective)
+        portfolio_variance = quicksum(
+            x[i] * x[j] * cov_matrix.loc[i, j] for i in assets for j in assets
+        )
+        
+        # Objective: Minimize risk
+        m.setObjective(portfolio_variance, GRB.MINIMIZE)
+        
+        # Optimize the model
+        try:
+            m.optimize()
             
-            # Calculate actual transaction costs
-            actual_tc = sum(abs(optimal_weights[asset] - initial_weights[asset]) * 
-                          TRANSACTION_COSTS[asset] / 100 for asset in assets)
-            
-            # Calculate portfolio metrics
-            portfolio_return = sum(optimal_weights[asset] * returns[asset] for asset in assets) - actual_tc
-            portfolio_risk = np.sqrt(sum(optimal_weights[i] * optimal_weights[j] * cov_matrix.loc[i, j]
-                                   for i in assets for j in assets))
-            
-            # Calculate Sharpe ratio
-            sharpe_ratio = (portfolio_return - risk_free_rate) / portfolio_risk if portfolio_risk > 0 else 0
-            
-            # Count actual number of assets used
-            assets_used = sum(1 for asset, weight in optimal_weights.items() if weight > 0.001)
-            
-            # Calculate sector allocations
-            sector_allocations = {}
-            for sector, sector_assets in SECTORS.items():
-                sector_allocation = sum(optimal_weights[asset] for asset in sector_assets if asset in optimal_weights)
-                sector_allocations[sector] = sector_allocation
-            
-            # Print detailed results
-            print(f"\nEnhanced Portfolio Optimization Results:")
-            print(f"  Return (after transaction costs): {portfolio_return:.4%}")
-            print(f"  Risk (Std Dev): {portfolio_risk:.4%}")
-            print(f"  Sharpe Ratio: {sharpe_ratio:.4f} (risk-free rate: {risk_free_rate:.2%})")
-            print(f"  Transaction costs: {actual_tc:.4%}")
-            print(f"  Number of assets used: {assets_used} (max allowed: {max_assets})")
-            
-            print("\n  Sector Allocations:")
-            for sector, allocation in sector_allocations.items():
-                print(f"    {sector}: {allocation:.4%} (limit: {sector_limits[sector]:.0%})")
-            
-            print("\n  Asset Allocation:")
-            for asset, weight in sorted(optimal_weights.items(), key=lambda x: -x[1]):
-                if weight > 0.001:  # Only show allocations > 0.1%
-                    asset_desc = ETF_DESCRIPTIONS.get(asset, asset)
-                    print(f"    {asset_desc}: {weight:.4%} (TC: {TRANSACTION_COSTS[asset]:.2f}%)")
-            
-            return {
-                'weights': optimal_weights,
-                'return': portfolio_return,
-                'risk': portfolio_risk,
-                'sharpe': sharpe_ratio,
-                'transaction_costs': actual_tc,
-                'assets_used': assets_used,
-                'sector_allocations': sector_allocations
-            }
-        else:
-            print(f"Optimization failed with status {m.status}")
-            return None
-    except Exception as e:
-        print(f"Optimization error: {e}")
-        return None
+            if m.status == GRB.OPTIMAL:
+                # Extract the optimal weights
+                optimal_weights = pd.Series({asset: x[asset].X for asset in assets})
+                
+                # Calculate actual transaction costs
+                actual_tc = sum(abs(optimal_weights[asset] - initial_weights[asset]) * 
+                              TRANSACTION_COSTS[asset] / 100 for asset in assets)
+                
+                # Calculate portfolio metrics
+                portfolio_return = sum(optimal_weights[asset] * returns[asset] for asset in assets) - actual_tc
+                portfolio_risk = np.sqrt(sum(optimal_weights[i] * optimal_weights[j] * cov_matrix.loc[i, j]
+                                       for i in assets for j in assets))
+                
+                # Calculate Sharpe ratio
+                sharpe_ratio = (portfolio_return - risk_free_rate) / portfolio_risk if portfolio_risk > 0 else 0
+                
+                # Count actual number of assets used
+                assets_used = sum(1 for asset, weight in optimal_weights.items() if weight > 0.001)
+                
+                # Calculate sector allocations
+                sector_allocations = {}
+                for sector, sector_assets in SECTORS.items():
+                    sector_allocation = sum(optimal_weights[asset] for asset in sector_assets if asset in optimal_weights)
+                    sector_allocations[sector] = sector_allocation
+                
+                # Create portfolio data
+                portfolio = {
+                    'weights': optimal_weights,
+                    'return': portfolio_return,
+                    'risk': portfolio_risk,
+                    'sharpe': sharpe_ratio,
+                    'transaction_costs': actual_tc,
+                    'assets_used': assets_used,
+                    'sector_allocations': sector_allocations
+                }
+                
+                # Add to our collection
+                efficient_portfolios.append(portfolio)
+                sharpe_ratios.append(sharpe_ratio)
+                
+                print(f"  Return: {portfolio_return:.4%}, Risk: {portfolio_risk:.4%}, Sharpe: {sharpe_ratio:.4f}")
+                print(f"  Transaction costs: {actual_tc:.4%}, Assets used: {assets_used}")
+                
+            else:
+                print(f"  Optimization failed with status {m.status} - skipping this point")
+        
+        except Exception as e:
+            print(f"  Optimization error: {e} - skipping this point")
+    
+    print(f"\nGenerated {len(efficient_portfolios)} portfolios for the enhanced efficient frontier")
+    
+    return efficient_portfolios, sharpe_ratios
 
-# 5. Run comparative analysis with original optimal portfolio
+# 5. Find optimal enhanced portfolio (maximum Sharpe ratio)
+def find_optimal_enhanced_portfolio(efficient_portfolios, sharpe_ratios, risk_free_rate=0.03):
+    """Find the portfolio with the maximum Sharpe ratio from the enhanced efficient frontier"""
+    if not efficient_portfolios:
+        print("No portfolios in efficient frontier to evaluate.")
+        return None
+    
+    # Find the index of the portfolio with the maximum Sharpe ratio
+    max_sharpe_idx = np.argmax(sharpe_ratios)
+    optimal_portfolio = efficient_portfolios[max_sharpe_idx]
+    
+    print("\n=== Enhanced Portfolio with Maximum Sharpe Ratio ===")
+    print(f"Sharpe Ratio: {optimal_portfolio['sharpe']:.4f}")
+    print(f"Return: {optimal_portfolio['return']:.4%}")
+    print(f"Risk: {optimal_portfolio['risk']:.4%}")
+    print(f"Transaction Costs: {optimal_portfolio['transaction_costs']:.4%}")
+    print(f"Number of Assets: {optimal_portfolio['assets_used']}")
+    
+    print("\nSector Allocations:")
+    for sector, allocation in optimal_portfolio['sector_allocations'].items():
+        print(f"  {sector}: {allocation:.4%}")
+    
+    print("\nAsset Allocation:")
+    for asset, weight in sorted(optimal_portfolio['weights'].items(), key=lambda x: -x[1]):
+        if weight > 0.001:  # Only show allocations > 0.1%
+            asset_desc = ETF_DESCRIPTIONS.get(asset, asset)
+            print(f"  {asset_desc}: {weight:.4%}")
+    
+    return optimal_portfolio
+
+# 6. Run comparative analysis with original optimal portfolio
 def compare_with_original_optimal(returns, cov_matrix, original_optimal_portfolio, risk_free_rate=0.03):
     """
     Compare enhanced portfolio with the original optimal portfolio and equal-weighted
@@ -345,9 +378,9 @@ def compare_with_original_optimal(returns, cov_matrix, original_optimal_portfoli
     print(f"  Sharpe Ratio: {original_sharpe:.4f}")
     print(f"  Number of assets: {original_assets_used}")
     
-    # 3. Enhanced portfolio with practical constraints
+    # 3. Generate enhanced efficient frontier and find optimal portfolio
     # Use original weights as initial weights to calculate transaction costs
-    enhanced_portfolio = optimize_enhanced_portfolio(
+    efficient_portfolios, sharpe_ratios = generate_enhanced_efficient_frontier(
         returns, 
         cov_matrix, 
         initial_weights=original_weights,
@@ -355,6 +388,9 @@ def compare_with_original_optimal(returns, cov_matrix, original_optimal_portfoli
         max_assets=8,  # Limit to 8 assets
         min_position=0.02  # Minimum position size of 2%
     )
+    
+    # Find the optimal portfolio with the maximum Sharpe ratio
+    enhanced_portfolio = find_optimal_enhanced_portfolio(efficient_portfolios, sharpe_ratios, risk_free_rate)
     
     # Compile results for comparison
     if enhanced_portfolio:
@@ -373,7 +409,7 @@ def compare_with_original_optimal(returns, cov_matrix, original_optimal_portfoli
                 'assets': original_assets_used,
                 'weights': original_weights
             },
-            'Enhanced': {
+            'Enhanced Optimal': {
                 'return': enhanced_portfolio['return'], 
                 'risk': enhanced_portfolio['risk'], 
                 'sharpe': enhanced_portfolio['sharpe'],
@@ -383,6 +419,13 @@ def compare_with_original_optimal(returns, cov_matrix, original_optimal_portfoli
                 'sector_allocations': enhanced_portfolio['sector_allocations']
             }
         }
+        
+        # Plot the efficient frontier with the portfolios
+        plot_enhanced_efficient_frontier(
+            efficient_portfolios, 
+            portfolio_data,
+            risk_free_rate
+        )
         
         # Visualize comparison
         plot_portfolio_comparison_enhanced(portfolio_data, risk_free_rate)
@@ -398,6 +441,65 @@ def compare_with_original_optimal(returns, cov_matrix, original_optimal_portfoli
     return None
 
 # Visualization functions
+def plot_enhanced_efficient_frontier(efficient_portfolios, portfolio_data, risk_free_rate=0.03):
+    """Plot the enhanced efficient frontier with key portfolios"""
+    # Extract risk and return values from efficient portfolios
+    risks = [p['risk'] for p in efficient_portfolios]
+    returns = [p['return'] for p in efficient_portfolios]
+    
+    plt.figure(figsize=(12, 8))
+    
+    # Plot enhanced efficient frontier
+    plt.plot(risks, returns, 'b-', linewidth=2, label='Enhanced Efficient Frontier')
+    
+    # Plot the key portfolios
+    for name, portfolio in portfolio_data.items():
+        color = 'purple' if name == 'Equal-Weighted' else 'green' if name == 'Original Optimal' else 'gold'
+        marker = 'o' if name == 'Equal-Weighted' else '^' if name == 'Original Optimal' else '*'
+        size = 100 if name == 'Equal-Weighted' else 150 if name == 'Original Optimal' else 200
+        
+        plt.scatter(
+            portfolio['risk'], 
+            portfolio['return'], 
+            color=color, 
+            marker=marker, 
+            s=size, 
+            label=name
+        )
+    
+    # Plot risk-free rate point
+    plt.scatter(0, risk_free_rate, c='black', marker='o', s=100, label=f'Risk-Free Rate ({risk_free_rate:.2%})')
+    
+    # Plot Capital Market Line (CML) for the enhanced optimal portfolio
+    enhanced_optimal = portfolio_data['Enhanced Optimal']
+    x_values = np.linspace(0, max(risks) * 1.2, 100)
+    slope = (enhanced_optimal['return'] - risk_free_rate) / enhanced_optimal['risk']
+    y_values = risk_free_rate + slope * x_values
+    plt.plot(x_values, y_values, 'g--', linewidth=2, label='Enhanced Capital Market Line')
+    
+    # Set labels and title
+    plt.title('Enhanced Efficient Frontier with Key Portfolios')
+    plt.xlabel('Portfolio Risk (Standard Deviation)')
+    plt.ylabel('Portfolio Return')
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    
+    # Add annotations for key portfolios
+    for name, portfolio in portfolio_data.items():
+        plt.annotate(
+            f"{name}\nReturn: {portfolio['return']:.2%}\nRisk: {portfolio['risk']:.2%}\nSharpe: {portfolio['sharpe']:.3f}",
+            xy=(portfolio['risk'], portfolio['return']),
+            xytext=(10, 0),
+            textcoords='offset points',
+            fontsize=8,
+            bbox=dict(boxstyle="round,pad=0.3", fc="white", alpha=0.8)
+        )
+    
+    # Save the figure
+    plt.savefig('visualisations_model2/enhanced_efficient_frontier.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    print("Enhanced efficient frontier plot saved to 'visualisations_model2/enhanced_efficient_frontier.png'")
+
 def plot_portfolio_comparison_enhanced(portfolio_data, risk_free_rate=0.03):
     """Plot enhanced comparison of portfolio strategies"""
     # Extract data
@@ -408,7 +510,7 @@ def plot_portfolio_comparison_enhanced(portfolio_data, risk_free_rate=0.03):
     asset_counts = [portfolio_data[name]['assets'] for name in names]
     
     # Transaction costs (only for enhanced portfolio)
-    tc = portfolio_data['Enhanced'].get('transaction_costs', 0)
+    tc = portfolio_data['Enhanced Optimal'].get('transaction_costs', 0)
     
     # Create a figure with subplots
     fig, axes = plt.subplots(2, 2, figsize=(18, 12))
@@ -489,7 +591,7 @@ def plot_weight_comparison(portfolio_data):
     weights_df = weights_df.rename(index={asset: ETF_DESCRIPTIONS.get(asset, asset) for asset in all_assets})
     
     # Sort by weights in the enhanced portfolio
-    sorted_assets = weights_df.sort_values(by='Enhanced', ascending=False).index
+    sorted_assets = weights_df.sort_values(by='Enhanced Optimal', ascending=False).index
     weights_df = weights_df.reindex(sorted_assets)
     
     # Create plot
@@ -517,7 +619,7 @@ def plot_weight_comparison(portfolio_data):
 
 def plot_sector_allocation(portfolio_data):
     """Plot sector allocation for the enhanced portfolio"""
-    sector_allocations = portfolio_data['Enhanced']['sector_allocations']
+    sector_allocations = portfolio_data['Enhanced Optimal']['sector_allocations']
     
     # Create plot
     plt.figure(figsize=(12, 8))
@@ -601,8 +703,8 @@ def main():
     # 5. Save the enhanced portfolio results for potential future use
     if portfolio_data:
         save_portfolio_weights(
-            {'Enhanced': portfolio_data['Enhanced']}, 
-            "enhanced_portfolio.json"
+            {'Enhanced Optimal': portfolio_data['Enhanced Optimal']}, 
+            "enhanced_optimal_portfolio.json"
         )
     
     print("\nAll visualizations have been saved in the 'visualisations_model2' folder.")
