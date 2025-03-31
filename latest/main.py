@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import json
 from gurobipy import Model, GRB, quicksum
 
 # Create visualisations directory if it doesn't exist
@@ -25,6 +26,25 @@ ETF_DESCRIPTIONS = {
     'VNQ': 'Real Estate',
     'GSG': 'Commodities'
 }
+
+# NEW FUNCTION: Save portfolio weights and metrics to JSON
+def save_portfolio_weights(portfolio_data, filename="optimal_portfolio.json"):
+    """Save portfolio weights and metrics to a JSON file"""
+    # Convert pandas Series to dictionaries for JSON serialization
+    serializable_data = {}
+    for portfolio_name, portfolio in portfolio_data.items():
+        serializable_data[portfolio_name] = {
+            'weights': portfolio['weights'].to_dict() if isinstance(portfolio['weights'], pd.Series) else portfolio['weights'],
+            'return': portfolio['return'],
+            'risk': portfolio['risk'],
+            'sharpe': portfolio['sharpe']
+        }
+    
+    # Save to file
+    with open(filename, 'w') as f:
+        json.dump(serializable_data, f, indent=4)
+    
+    print(f"Portfolio data saved to {filename}")
 
 # 1. Load Financial Data
 def fetch_stock_data(tickers, start_date, end_date):
@@ -192,7 +212,7 @@ def calculate_portfolio_stats(weights, returns, cov_matrix, risk_free_rate=0.03)
     
     return portfolio_return, portfolio_risk, sharpe_ratio
 
-# New visualization functions
+# Visualization functions
 def plot_returns_vs_risk(annual_returns, annual_risks):
     """Plot returns versus risk for individual assets"""
     plt.figure(figsize=(12, 8))
@@ -460,9 +480,7 @@ def main():
     end_date = '2024-12-31'
     
     # Define risk-free rate (annual)
-    # Using 5% as a default but this should be adjusted based on current rates
-    # For example, you could use the 3-month Treasury Bill rate or 10-year Treasury yield
-    risk_free_rate = 0.03  # 5%
+    risk_free_rate = 0.03  # 3%
     print(f"Using annual risk-free rate: {risk_free_rate:.2%}")
     
     # Print asset descriptions for reference
@@ -562,14 +580,33 @@ def main():
     
     # Plot portfolio comparison
     portfolio_data = {
-        'Equal-Weighted': {'return': equal_return, 'risk': equal_risk, 'sharpe': equal_sharpe},
-        'Target Return': {'return': moderate_portfolio['return'], 'risk': moderate_portfolio['risk'], 'sharpe': moderate_portfolio['sharpe']},
-        'Maximum Sharpe': {'return': optimal_portfolio['return'], 'risk': optimal_portfolio['risk'], 'sharpe': optimal_portfolio['sharpe']}
+        'Equal-Weighted': {
+            'return': equal_return, 
+            'risk': equal_risk, 
+            'sharpe': equal_sharpe,
+            'weights': equal_weights
+        },
+        'Target Return': {
+            'return': moderate_portfolio['return'], 
+            'risk': moderate_portfolio['risk'], 
+            'sharpe': moderate_portfolio['sharpe'],
+            'weights': moderate_portfolio['weights']
+        },
+        'Maximum Sharpe': {
+            'return': optimal_portfolio['return'], 
+            'risk': optimal_portfolio['risk'], 
+            'sharpe': optimal_portfolio['sharpe'],
+            'weights': optimal_portfolio['weights']
+        }
     }
     plot_portfolio_comparison(portfolio_data, risk_free_rate)
     
+    # NEW: Save portfolio data to JSON file for use in the enhanced model
+    save_portfolio_weights(portfolio_data, "optimal_portfolio.json")
+    
     print("\nAll visualizations have been saved in the 'visualisations' folder.")
     print(f"\nNote: All Sharpe ratio calculations use a risk-free rate of {risk_free_rate:.2%}")
+    print("\nOptimal portfolio data has been saved to 'optimal_portfolio.json' for use in the enhanced model.")
 
 if __name__ == "__main__":
     main()
