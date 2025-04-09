@@ -29,7 +29,7 @@ ETF_DESCRIPTIONS = {
 
 # Define sector classification for ETFs
 SECTORS = {
-    'Equities': ['SPY', 'QQQ', 'VWRA.L', 'VGK', 'EEM', 'VPL'],
+    'Equities': ['SPY', 'VWRA.L', 'VGK', 'EEM', 'VPL'],
     'Fixed Income': ['AGG', 'TLT', 'LQD'],
     'Alternative': ['GLD', 'SLV', 'VNQ', 'GSG']
 }
