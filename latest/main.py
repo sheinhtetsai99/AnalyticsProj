@@ -7,6 +7,27 @@ import os
 import json
 from gurobipy import Model, GRB, quicksum
 
+#######################################################
+#           CONFIGURATION PARAMETERS                  #
+#######################################################
+
+# Date range for analysis
+START_DATE = '2006-10-03'
+END_DATE = '2024-12-31'
+
+# Risk-free rate (annual)
+RISK_FREE_RATE = 0.03  # 3%
+
+# Number of points on efficient frontier
+POINTS = 20
+
+#######################################################
+# Original code below - DO NOT MODIFY                 #
+#######################################################
+
+# Tickers to include in portfolio optimization
+TICKERS = ['SPY', 'QQQ', 'VWRA.L', 'VGK', 'EEM', 'VPL', 'AGG', 'TLT', 'LQD', 'GLD', 'SLV', 'VNQ', 'GSG']
+
 # Create visualisations directory if it doesn't exist
 os.makedirs('visualisations', exist_ok=True)
 
@@ -474,20 +495,21 @@ def print_asset_descriptions():
 
 # Main function
 def main():
-    # Define parameters
-    tickers = ['SPY', 'QQQ', 'VWRA.L', 'VGK', 'EEM', 'VPL', 'AGG', 'TLT', 'LQD', 'GLD', 'SLV', 'VNQ', 'GSG']
-    start_date = '2006-10-03'
-    end_date = '2024-12-31'
-    
-    # Define risk-free rate (annual)
-    risk_free_rate = 0.03  # 3%
-    print(f"Using annual risk-free rate: {risk_free_rate:.2%}")
+    # Print configuration for reference
+    print("\n" + "="*60)
+    print("PORTFOLIO OPTIMIZATION - CONFIGURATION PARAMETERS")
+    print("="*60)
+    print(f"Risk-Free Rate: {RISK_FREE_RATE:.2%}")
+    print(f"Date Range: {START_DATE} to {END_DATE}")
+    print(f"Efficient Frontier Points: {POINTS}")
+    print(f"Tickers: {', '.join(TICKERS)}")
+    print("="*60 + "\n")
     
     # Print asset descriptions for reference
     print_asset_descriptions()
     
     # Step 1: Fetch data
-    stock_data = fetch_stock_data(tickers, start_date, end_date)
+    stock_data = fetch_stock_data(TICKERS, START_DATE, END_DATE)
     
     # Step 2: Calculate returns and covariance
     print("\n=== Asset Return and Risk Analysis ===")
@@ -511,7 +533,7 @@ def main():
     # Calculate and print Sharpe ratio for individual assets
     print("\nSharpe Ratios (Individual Assets):")
     for i, ticker in enumerate(annual_returns.index):
-        excess_return = annual_returns[ticker] - risk_free_rate
+        excess_return = annual_returns[ticker] - RISK_FREE_RATE
         risk = annual_risks[i]
         sharpe = excess_return / risk if risk > 0 else 0
         asset_desc = ETF_DESCRIPTIONS.get(ticker, ticker)
@@ -535,32 +557,32 @@ def main():
     # Step 3: Optimize for a single target return
     # Choose a moderate target return
     moderate_return = annual_returns.mean()
-    moderate_portfolio = optimize_for_target_return(annual_returns, cov_matrix, moderate_return, risk_free_rate)
+    moderate_portfolio = optimize_for_target_return(annual_returns, cov_matrix, moderate_return, RISK_FREE_RATE)
     
     # Plot the moderate portfolio allocation
     plot_optimal_allocation(moderate_portfolio['weights'], 'Target Return Portfolio Allocation')
     
     # Step 4: Generate efficient frontier
-    efficient_portfolios, all_sharpe_ratios = generate_efficient_frontier(annual_returns, cov_matrix, risk_free_rate, points=20)
+    efficient_portfolios, all_sharpe_ratios = generate_efficient_frontier(annual_returns, cov_matrix, RISK_FREE_RATE, points=POINTS)
     
     # Plot Sharpe ratios along the efficient frontier
-    plot_sharpe_ratios(efficient_portfolios, all_sharpe_ratios, risk_free_rate)
+    plot_sharpe_ratios(efficient_portfolios, all_sharpe_ratios, RISK_FREE_RATE)
     
     # Step 5: Find optimal portfolio (maximum Sharpe ratio)
-    optimal_portfolio = find_max_sharpe_portfolio(efficient_portfolios, all_sharpe_ratios, risk_free_rate)
+    optimal_portfolio = find_max_sharpe_portfolio(efficient_portfolios, all_sharpe_ratios, RISK_FREE_RATE)
     
     # Plot the optimal portfolio allocation
     plot_optimal_allocation(optimal_portfolio['weights'], 'Maximum Sharpe Portfolio Allocation')
     
     # Step 6: Compare with equal-weighted portfolio
     print("\n=== Comparing with Equal-Weighted Portfolio ===")
-    equal_weights = pd.Series(1/len(tickers), index=annual_returns.index)
-    equal_return, equal_risk, equal_sharpe = calculate_portfolio_stats(equal_weights, annual_returns, cov_matrix, risk_free_rate)
+    equal_weights = pd.Series(1/len(TICKERS), index=annual_returns.index)
+    equal_return, equal_risk, equal_sharpe = calculate_portfolio_stats(equal_weights, annual_returns, cov_matrix, RISK_FREE_RATE)
     
     print(f"Equal-Weighted Portfolio:")
     print(f"  Return: {equal_return:.4%}")
     print(f"  Risk: {equal_risk:.4%}")
-    print(f"  Excess Return: {(equal_return - risk_free_rate):.4%}")
+    print(f"  Excess Return: {(equal_return - RISK_FREE_RATE):.4%}")
     print(f"  Sharpe Ratio: {equal_sharpe:.4f}")
     
     # Plot the equal-weighted portfolio allocation
@@ -568,15 +590,15 @@ def main():
     
     # Plot the efficient frontier
     plot_efficient_frontier(efficient_portfolios, annual_returns, annual_risks, 
-                           optimal_portfolio, moderate_portfolio, equal_return, equal_risk, risk_free_rate)
+                           optimal_portfolio, moderate_portfolio, equal_return, equal_risk, RISK_FREE_RATE)
     
     # Print comparison
     print("\n=== Performance Comparison ===")
     print(f"{'Portfolio Type':<20} {'Return':<10} {'Risk':<10} {'Excess Ret.':<12} {'Sharpe':<10}")
     print(f"{'-'*20} {'-'*10} {'-'*10} {'-'*12} {'-'*10}")
-    print(f"{'Equal-Weighted':<20} {equal_return:.4%} {equal_risk:.4%} {(equal_return - risk_free_rate):.4%} {equal_sharpe:.4f}")
-    print(f"{'Target Return':<20} {moderate_portfolio['return']:.4%} {moderate_portfolio['risk']:.4%} {(moderate_portfolio['return'] - risk_free_rate):.4%} {moderate_portfolio['sharpe']:.4f}")
-    print(f"{'Maximum Sharpe':<20} {optimal_portfolio['return']:.4%} {optimal_portfolio['risk']:.4%} {(optimal_portfolio['return'] - risk_free_rate):.4%} {optimal_portfolio['sharpe']:.4f}")
+    print(f"{'Equal-Weighted':<20} {equal_return:.4%} {equal_risk:.4%} {(equal_return - RISK_FREE_RATE):.4%} {equal_sharpe:.4f}")
+    print(f"{'Target Return':<20} {moderate_portfolio['return']:.4%} {moderate_portfolio['risk']:.4%} {(moderate_portfolio['return'] - RISK_FREE_RATE):.4%} {moderate_portfolio['sharpe']:.4f}")
+    print(f"{'Maximum Sharpe':<20} {optimal_portfolio['return']:.4%} {optimal_portfolio['risk']:.4%} {(optimal_portfolio['return'] - RISK_FREE_RATE):.4%} {optimal_portfolio['sharpe']:.4f}")
     
     # Plot portfolio comparison
     portfolio_data = {
@@ -599,14 +621,19 @@ def main():
             'weights': optimal_portfolio['weights']
         }
     }
-    plot_portfolio_comparison(portfolio_data, risk_free_rate)
+    plot_portfolio_comparison(portfolio_data, RISK_FREE_RATE)
     
     # NEW: Save portfolio data to JSON file for use in the enhanced model
     save_portfolio_weights(portfolio_data, "optimal_portfolio.json")
     
     print("\nAll visualizations have been saved in the 'visualisations' folder.")
-    print(f"\nNote: All Sharpe ratio calculations use a risk-free rate of {risk_free_rate:.2%}")
+    print(f"\nNote: All Sharpe ratio calculations use a risk-free rate of {RISK_FREE_RATE:.2%}")
     print("\nOptimal portfolio data has been saved to 'optimal_portfolio.json' for use in the enhanced model.")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"\nERROR: {e}")
+        import traceback
+        traceback.print_exc()

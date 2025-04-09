@@ -7,6 +7,59 @@ import os
 import json
 from gurobipy import Model, GRB, quicksum
 
+#######################################################
+#           CONFIGURATION PARAMETERS                  #
+#######################################################
+
+# Date range for analysis
+START_DATE = '2006-10-03'
+END_DATE = '2023-12-31'
+
+# Risk-free rate (annual)
+RISK_FREE_RATE = 0.03  # 3%
+
+# Enhanced optimization constraints
+MAX_ASSETS = 8         # Maximum number of assets in the portfolio
+MIN_POSITION = 0.02    # Minimum position size (2%)
+EF_POINTS = 20         # Number of points on the efficient frontier
+
+# Maximum allocation per sector
+SECTOR_LIMITS = {
+    'Equities': 0.70, # Max 70% in equities
+    'Fixed Income': 0.60,  # Max 60% in fixed income
+    'Alternative': 0.30   # Max 30% in alternatives
+}
+
+# Transaction costs (percentage)
+
+# Set APPLY_TRANSACTION_COSTS to False to ignore transaction costs in optimization
+APPLY_TRANSACTION_COSTS = True
+
+# Base transaction cost as percentage (e.g., 0.05 = 0.05%)
+BASE_TRANSACTION_COST = 0.05
+
+# Transaction costs (percentage)
+TRANSACTION_COST_FACTORS = {
+    'SPY': 0.05, 'QQQ': 0.05, 'VWRA.L': 0.07, 'VGK': 0.06, 'EEM': 0.08, 
+    'VPL': 0.07, 'AGG': 0.04, 'TLT': 0.04, 'LQD': 0.04, 
+    'GLD': 0.06, 'SLV': 0.06, 'VNQ': 0.05, 'GSG': 0.06
+}
+
+#######################################################
+# Original code below - DO NOT MODIFY                 #
+#######################################################
+
+# Tickers to include in portfolio optimization
+TICKERS = ['SPY', 'QQQ', 'VWRA.L', 'VGK', 'EEM', 'VPL', 'AGG', 'TLT', 'LQD', 'GLD', 'SLV', 'VNQ', 'GSG']
+
+# Define sector classification for ETFs
+SECTORS = {
+    'Equities': ['SPY', 'QQQ', 'VWRA.L', 'VGK', 'EEM', 'VPL'],  # Added QQQ here
+    'Fixed Income': ['AGG', 'TLT', 'LQD'],
+    'Alternative': ['GLD', 'SLV', 'VNQ', 'GSG']
+}
+
+
 # Create visualisations_model2 directory if it doesn't exist
 os.makedirs('visualisations_model2', exist_ok=True)
 
@@ -27,19 +80,18 @@ ETF_DESCRIPTIONS = {
     'GSG': 'Commodities'
 }
 
-# Define sector classification for ETFs
-SECTORS = {
-    'Equities': ['SPY', 'VWRA.L', 'VGK', 'EEM', 'VPL'],
-    'Fixed Income': ['AGG', 'TLT', 'LQD'],
-    'Alternative': ['GLD', 'SLV', 'VNQ', 'GSG']
-}
 
-# Transaction costs (percentage)
-TRANSACTION_COSTS = {
-    'SPY': 0.05, 'QQQ': 0.05, 'VWRA.L': 0.07, 'VGK': 0.06, 'EEM': 0.08, 
-    'VPL': 0.07, 'AGG': 0.04, 'TLT': 0.04, 'LQD': 0.04, 
-    'GLD': 0.06, 'SLV': 0.06, 'VNQ': 0.05, 'GSG': 0.06
-}
+# Generate transaction costs based on configuration
+def get_transaction_costs():
+    """Calculate transaction costs for each asset based on configuration"""
+    transaction_costs = {}
+    for ticker in TICKERS:
+        factor = TRANSACTION_COST_FACTORS.get(ticker, 1.0)
+        transaction_costs[ticker] = BASE_TRANSACTION_COST * factor
+    return transaction_costs
+
+# Get transaction costs
+TRANSACTION_COSTS = get_transaction_costs()
 
 # 1. Load Financial Data
 def fetch_stock_data(tickers, start_date, end_date):
@@ -124,8 +176,8 @@ def load_portfolio_weights(filename="optimal_portfolio.json"):
 
 # 4. Generate Enhanced Efficient Frontier with constraints
 def generate_enhanced_efficient_frontier(returns, cov_matrix, initial_weights=None, 
-                                     risk_free_rate=0.03, max_assets=8, 
-                                     sector_limits=None, min_position=0.02, points=20):
+                                     risk_free_rate=RISK_FREE_RATE, max_assets=MAX_ASSETS, 
+                                     sector_limits=SECTOR_LIMITS, min_position=MIN_POSITION, points=EF_POINTS):
     """
     Generate efficient frontier with practical constraints:
     - Cardinality constraint (maximum number of assets)
@@ -149,14 +201,6 @@ def generate_enhanced_efficient_frontier(returns, cov_matrix, initial_weights=No
     n = len(returns)  # Number of assets
     assets = returns.index.tolist()
     
-    # Set default sector limits if not provided
-    if sector_limits is None:
-        sector_limits = {
-            'Equities': 0.70,  # Max 70% in equities
-            'Fixed Income': 0.60,  # Max 60% in fixed income
-            'Alternative': 0.30   # Max 30% in alternatives
-        }
-    
     # Default initial weights if not provided
     if initial_weights is None:
         initial_weights = pd.Series(0, index=assets)
@@ -170,7 +214,11 @@ def generate_enhanced_efficient_frontier(returns, cov_matrix, initial_weights=No
     
     print("\n=== Generating Enhanced Efficient Frontier ===")
     print(f"Return range: {min_return:.4%} to {max_return:.4%}")
-    print(f"Constraints: Max {max_assets} assets, Min position {min_position:.1%}, with sector limits and transaction costs")
+    print(f"Constraints: Max {max_assets} assets, Min position {min_position:.1%}, with sector limits")
+    if APPLY_TRANSACTION_COSTS:
+        print(f"Transaction costs: Base {BASE_TRANSACTION_COST:.2%} with asset-specific factors")
+    else:
+        print("Transaction costs: Disabled")
     
     efficient_portfolios = []
     sharpe_ratios = []
@@ -207,13 +255,16 @@ def generate_enhanced_efficient_frontier(returns, cov_matrix, initial_weights=No
                     f"sector_{sector}"
                 )
         
-        # Transaction costs (absolute difference between new and initial weights)
-        for asset in assets:
-            m.addConstr(tc[asset] >= x[asset] - initial_weights[asset], f"tc_pos_{asset}")
-            m.addConstr(tc[asset] >= initial_weights[asset] - x[asset], f"tc_neg_{asset}")
-        
-        # Calculate total transaction cost
-        total_tc = quicksum(tc[asset] * TRANSACTION_COSTS[asset] / 100 for asset in assets)
+        # Transaction costs (if enabled)
+        total_tc = 0
+        if APPLY_TRANSACTION_COSTS:
+            # Define transaction cost variables (absolute difference between new and initial weights)
+            for asset in assets:
+                m.addConstr(tc[asset] >= x[asset] - initial_weights[asset], f"tc_pos_{asset}")
+                m.addConstr(tc[asset] >= initial_weights[asset] - x[asset], f"tc_neg_{asset}")
+            
+            # Calculate total transaction cost
+            total_tc = quicksum(tc[asset] * TRANSACTION_COSTS[asset] / 100 for asset in assets)
         
         # Target return constraint with transaction costs
         m.addConstr(
@@ -238,8 +289,10 @@ def generate_enhanced_efficient_frontier(returns, cov_matrix, initial_weights=No
                 optimal_weights = pd.Series({asset: x[asset].X for asset in assets})
                 
                 # Calculate actual transaction costs
-                actual_tc = sum(abs(optimal_weights[asset] - initial_weights[asset]) * 
-                              TRANSACTION_COSTS[asset] / 100 for asset in assets)
+                actual_tc = 0
+                if APPLY_TRANSACTION_COSTS:
+                    actual_tc = sum(abs(optimal_weights[asset] - initial_weights[asset]) * 
+                                  TRANSACTION_COSTS[asset] / 100 for asset in assets)
                 
                 # Calculate portfolio metrics
                 portfolio_return = sum(optimal_weights[asset] * returns[asset] for asset in assets) - actual_tc
@@ -287,7 +340,7 @@ def generate_enhanced_efficient_frontier(returns, cov_matrix, initial_weights=No
     return efficient_portfolios, sharpe_ratios
 
 # 5. Find optimal enhanced portfolio (maximum Sharpe ratio)
-def find_optimal_enhanced_portfolio(efficient_portfolios, sharpe_ratios, risk_free_rate=0.03):
+def find_optimal_enhanced_portfolio(efficient_portfolios, sharpe_ratios, risk_free_rate=RISK_FREE_RATE):
     """Find the portfolio with the maximum Sharpe ratio from the enhanced efficient frontier"""
     if not efficient_portfolios:
         print("No portfolios in efficient frontier to evaluate.")
@@ -317,7 +370,7 @@ def find_optimal_enhanced_portfolio(efficient_portfolios, sharpe_ratios, risk_fr
     return optimal_portfolio
 
 # 6. Run comparative analysis with original optimal portfolio
-def compare_with_original_optimal(returns, cov_matrix, original_optimal_portfolio, risk_free_rate=0.03):
+def compare_with_original_optimal(returns, cov_matrix, original_optimal_portfolio, risk_free_rate=RISK_FREE_RATE):
     """
     Compare enhanced portfolio with the original optimal portfolio and equal-weighted
     
@@ -385,8 +438,10 @@ def compare_with_original_optimal(returns, cov_matrix, original_optimal_portfoli
         cov_matrix, 
         initial_weights=original_weights,
         risk_free_rate=risk_free_rate,
-        max_assets=8,  # Limit to 8 assets
-        min_position=0.02  # Minimum position size of 2%
+        max_assets=MAX_ASSETS,
+        min_position=MIN_POSITION,
+        sector_limits=SECTOR_LIMITS,
+        points=EF_POINTS
     )
     
     # Find the optimal portfolio with the maximum Sharpe ratio
@@ -441,7 +496,7 @@ def compare_with_original_optimal(returns, cov_matrix, original_optimal_portfoli
     return None
 
 # Visualization functions
-def plot_enhanced_efficient_frontier(efficient_portfolios, portfolio_data, risk_free_rate=0.03):
+def plot_enhanced_efficient_frontier(efficient_portfolios, portfolio_data, risk_free_rate=RISK_FREE_RATE):
     """Plot the enhanced efficient frontier with key portfolios"""
     # Extract risk and return values from efficient portfolios
     risks = [p['risk'] for p in efficient_portfolios]
@@ -484,15 +539,26 @@ def plot_enhanced_efficient_frontier(efficient_portfolios, portfolio_data, risk_
     plt.grid(True, alpha=0.3)
     plt.legend()
     
-    # Add annotations for key portfolios
+    # Add annotations for key portfolios with adjusted positions to avoid overlap
+    # Define offsets for each portfolio type to prevent overlap
+    annotation_offsets = {
+        'Equal-Weighted': (10, 0),  # right
+        'Original Optimal': (-80, 30),  # up and left
+        'Enhanced Optimal': (10, 30)  # up and right
+    }
+    
     for name, portfolio in portfolio_data.items():
+        # Get the appropriate offset for this portfolio type
+        offset = annotation_offsets.get(name, (10, 0))
+        
         plt.annotate(
             f"{name}\nReturn: {portfolio['return']:.2%}\nRisk: {portfolio['risk']:.2%}\nSharpe: {portfolio['sharpe']:.3f}",
             xy=(portfolio['risk'], portfolio['return']),
-            xytext=(10, 0),
+            xytext=offset,
             textcoords='offset points',
             fontsize=8,
-            bbox=dict(boxstyle="round,pad=0.3", fc="white", alpha=0.8)
+            bbox=dict(boxstyle="round,pad=0.3", fc="white", alpha=0.8),
+            arrowprops=dict(arrowstyle='->', lw=1, color='gray') if name != 'Equal-Weighted' else None
         )
     
     # Save the figure
@@ -500,7 +566,7 @@ def plot_enhanced_efficient_frontier(efficient_portfolios, portfolio_data, risk_
     plt.close()
     print("Enhanced efficient frontier plot saved to 'visualisations_model2/enhanced_efficient_frontier.png'")
 
-def plot_portfolio_comparison_enhanced(portfolio_data, risk_free_rate=0.03):
+def plot_portfolio_comparison_enhanced(portfolio_data, risk_free_rate=RISK_FREE_RATE):
     """Plot enhanced comparison of portfolio strategies"""
     # Extract data
     names = list(portfolio_data.keys())
@@ -553,13 +619,14 @@ def plot_portfolio_comparison_enhanced(portfolio_data, risk_free_rate=0.03):
         ax_count.text(i, v/2, f"{v}", ha='center', va='center', fontweight='bold', color='darkgoldenrod')
     
     # Add transaction cost annotation for Enhanced portfolio
-    ax_count.annotate(
-        f"Transaction Costs: {tc:.2%}",
-        xy=(2, asset_counts[2]),
-        xytext=(2, asset_counts[2] + 3),
-        ha='center',
-        bbox=dict(boxstyle="round,pad=0.3", fc="pink", alpha=0.7)
-    )
+    if APPLY_TRANSACTION_COSTS:
+        ax_count.annotate(
+            f"Transaction Costs: {tc:.2%}",
+            xy=(2, asset_counts[2]),
+            xytext=(2, asset_counts[2] + 3),
+            ha='center',
+            bbox=dict(boxstyle="round,pad=0.3", fc="pink", alpha=0.7)
+        )
     
     plt.tight_layout()
     
@@ -671,11 +738,32 @@ def get_optimal_portfolio(file_path="optimal_portfolio.json"):
 
 # Main function
 def main():
-    # Define parameters
-    tickers = ['SPY', 'QQQ', 'VWRA.L', 'VGK', 'EEM', 'VPL', 'AGG', 'TLT', 'LQD', 'GLD', 'SLV', 'VNQ', 'GSG']
-    start_date = '2018-01-01'  # Using more recent data
-    end_date = '2023-12-31'
-    risk_free_rate = 0.03
+    # Print configuration for reference
+    print("\n" + "="*60)
+    print("ENHANCED PORTFOLIO OPTIMIZATION - CONFIGURATION PARAMETERS")
+    print("="*60)
+    print(f"Risk-Free Rate: {RISK_FREE_RATE:.2%}")
+    print(f"Date Range: {START_DATE} to {END_DATE}")
+    print(f"Maximum Assets: {MAX_ASSETS}")
+    print(f"Minimum Position Size: {MIN_POSITION:.2%}")
+    print(f"Efficient Frontier Points: {EF_POINTS}")
+    
+    # Print transaction cost settings
+    if APPLY_TRANSACTION_COSTS:
+        print(f"Transaction Costs: Enabled")
+        print(f"  - Base Cost: {BASE_TRANSACTION_COST:.2%}")
+        print(f"  - Asset-Specific Costs:")
+        for ticker in TICKERS:
+            cost = TRANSACTION_COSTS.get(ticker, BASE_TRANSACTION_COST)
+            print(f"    {ticker}: {cost:.3%}")
+    else:
+        print("Transaction Costs: Disabled")
+    
+    print(f"Sector Limits:")
+    for sector, limit in SECTOR_LIMITS.items():
+        print(f"  - {sector}: {limit:.2%}")
+    print(f"Tickers: {', '.join(TICKERS)}")
+    print("="*60 + "\n")
     
     # 1. Fetch or load data
     try:
@@ -684,7 +772,7 @@ def main():
         print("Loaded stock data from file.")
     except FileNotFoundError:
         # Fetch new data if file doesn't exist
-        stock_data = fetch_stock_data(tickers, start_date, end_date)
+        stock_data = fetch_stock_data(TICKERS, START_DATE, END_DATE)
     
     # 2. Calculate returns and covariance
     daily_returns, annual_returns, cov_matrix = calculate_returns_and_covariance(stock_data)
@@ -697,7 +785,7 @@ def main():
         annual_returns, 
         cov_matrix, 
         original_optimal,
-        risk_free_rate
+        RISK_FREE_RATE
     )
     
     # 5. Save the enhanced portfolio results for potential future use
@@ -710,4 +798,9 @@ def main():
     print("\nAll visualizations have been saved in the 'visualisations_model2' folder.")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"\nERROR: {e}")
+        import traceback
+        traceback.print_exc()
