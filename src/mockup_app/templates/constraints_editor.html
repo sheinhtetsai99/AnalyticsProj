@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OptiWealth - Constraints Editor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="app-title">OptiWealth</div>
+            <div class="nav-menu">
+                <a href="{{ url_for('client_overview') }}" class="nav-link">Client Overview</a>
+                <a href="{{ url_for('portfolio_analysis') }}" class="nav-link">Portfolio Analysis</a>
+                <a href="{{ url_for('constraints_editor') }}" class="nav-link active">Constraints Editor</a>
+                <a href="{{ url_for('recommendations') }}" class="nav-link">Recommendations</a>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <h1>Constraints Editor</h1>
+            
+            <div class="grid-2">
+                <!-- Portfolio Constraints -->
+                <div class="card">
+                    <h2>Portfolio Constraints</h2>
+                    <form>
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Maximum Number of Assets</label>
+                            <input type="number" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;" value="8">
+                        </div>
+                        
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Minimum Position Size (%)</label>
+                            <input type="number" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;" value="5" step="0.1">
+                        </div>
+                        
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Equity Sector Limit (%)</label>
+                            <input type="number" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;" value="65" step="0.1">
+                        </div>
+                        
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Transaction Cost Limit (%)</label>
+                            <input type="number" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;" value="0.75" step="0.01">
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Sector Allocation Limits -->
+                <div class="card">
+                    <h2>Sector Allocation Limits</h2>
+                    <form>
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Equities (%)</label>
+                            <input type="number" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;" value="70" step="0.1">
+                        </div>
+                        
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Fixed Income (%)</label>
+                            <input type="number" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;" value="60" step="0.1">
+                        </div>
+                        
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Alternative (%)</label>
+                            <input type="number" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;" value="30" step="0.1">
+                        </div>
+                        
+                        <button style="background-color: #3b82f6; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; margin-top: 8px;">
+                            Update Constraints
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Configuration Parameters -->
+            <div class="card">
+                <h2>Configuration Parameters</h2>
+                <form style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 500;">Start Date</label>
+                        <input type="date" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;" value="2006-10-03">
+                    </div>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 500;">End Date</label>
+                        <input type="date" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;" value="2024-12-31">
+                    </div>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 500;">Risk-Free Rate (%)</label>
+                        <input type="number" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;" value="3" step="0.01">
+                    </div>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 500;">Efficient Frontier Points</label>
+                        <input type="number" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;" value="20">
+                    </div>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 500;">Transaction Cost Base (%)</label>
+                        <input type="number" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;" value="0.05" step="0.001">
+                    </div>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 500;">Max Risk Tolerance (%)</label>
+                        <input type="number" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;" value="12" step="0.1">
+                    </div>
+                    
+                    <div style="grid-column: span 3; margin-top: 16px;">
+                        <button style="background-color: #10b981; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">
+                            Run Optimization
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Asset Selection -->
+            <div class="card">
+                <h2>Asset Selection</h2>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                    <div>
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" checked style="margin-right: 8px;">
+                            <label>SPY (US Equities S&P 500)</label>
+                        </div>
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" checked style="margin-right: 8px;">
+                            <label>QQQ (US Tech)</label>
+                        </div>
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" checked style="margin-right: 8px;">
+                            <label>VWRA.L (All World Equities)</label>
+                        </div>
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" checked style="margin-right: 8px;">
+                            <label>VGK (European Equities)</label>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" checked style="margin-right: 8px;">
+                            <label>AGG (US Aggregate Bonds)</label>
+                        </div>
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" checked style="margin-right: 8px;">
+                            <label>TLT (Long-Term Treasury)</label>
+                        </div>
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" checked style="margin-right: 8px;">
+                            <label>LQD (Corporate Bonds)</label>
+                        </div>
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" style="margin-right: 8px;">
+                            <label>SHY (Short-Term Treasury)</label>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" checked style="margin-right: 8px;">
+                            <label>GLD (Gold)</label>
+                        </div>
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" checked style="margin-right: 8px;">
+                            <label>SLV (Silver)</label>
+                        </div>
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" checked style="margin-right: 8px;">
+                            <label>VNQ (Real Estate)</label>
+                        </div>
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="checkbox" checked style="margin-right: 8px;">
+                            <label>GSG (Commodities)</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

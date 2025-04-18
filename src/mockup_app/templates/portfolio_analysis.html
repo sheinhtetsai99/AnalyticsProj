@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OptiWealth - Portfolio Analysis</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="app-title">OptiWealth</div>
+            <div class="nav-menu">
+                <a href="{{ url_for('client_overview') }}" class="nav-link">Client Overview</a>
+                <a href="{{ url_for('portfolio_analysis') }}" class="nav-link active">Portfolio Analysis</a>
+                <a href="{{ url_for('constraints_editor') }}" class="nav-link">Constraints Editor</a>
+                <a href="{{ url_for('recommendations') }}" class="nav-link">Recommendations</a>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <h1>Portfolio Analysis</h1>
+            
+            <div class="grid-2">
+                <!-- Current Allocation -->
+                <div class="card">
+                    <h2>Current Allocation</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Asset</th>
+                                <th class="text-right">Weight</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>US Equities (S&P 500)</td>
+                                <td class="text-right">25.20%</td>
+                            </tr>
+                            <tr>
+                                <td>US Tech</td>
+                                <td class="text-right">20.00%</td>
+                            </tr>
+                            <tr>
+                                <td>US Aggregate Bonds</td>
+                                <td class="text-right">22.00%</td>
+                            </tr>
+                            <tr>
+                                <td>Long-Term Treasury Bonds</td>
+                                <td class="text-right">18.50%</td>
+                            </tr>
+                            <tr>
+                                <td>Gold</td>
+                                <td class="text-right">9.50%</td>
+                            </tr>
+                            <tr>
+                                <td>Real Estate</td>
+                                <td class="text-right">4.80%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Optimized Allocation -->
+                <div class="card">
+                    <h2>Optimized Allocation</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Asset</th>
+                                <th class="text-right">Weight</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>US Equities (S&P 500)</td>
+                                <td class="text-right">20.10%</td>
+                            </tr>
+                            <tr>
+                                <td>US Tech</td>
+                                <td class="text-right">18.00%</td>
+                            </tr>
+                            <tr>
+                                <td>All World Equities</td>
+                                <td class="text-right">15.10%</td>
+                            </tr>
+                            <tr>
+                                <td>US Aggregate Bonds</td>
+                                <td class="text-right">18.00%</td>
+                            </tr>
+                            <tr>
+                                <td>Long-Term Treasury Bonds</td>
+                                <td class="text-right">13.00%</td>
+                            </tr>
+                            <tr>
+                                <td>Corporate Bonds</td>
+                                <td class="text-right">9.00%</td>
+                            </tr>
+                            <tr>
+                                <td>Gold</td>
+                                <td class="text-right">6.80%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Performance Metrics Comparison -->
+            <div class="card">
+                <h2>Performance Metrics Comparison</h2>
+                <div class="grid-3">
+                    <!-- Expected Return -->
+                    <div style="background-color: #f0f9ff; padding: 15px; border-radius: 8px;">
+                        <h3>Expected Return</h3>
+                        <div style="display: flex; align-items: flex-end;">
+                            <div style="width: 50%; padding-right: 8px;">
+                                <div style="background-color: #bfdbfe; height: 60px; position: relative; display: flex; align-items: center; justify-content: center;">
+                                    <div style="position: absolute; top: 0; width: 100%; text-align: center; font-size: 12px; padding-top: 4px;">Current</div>
+                                    <div>11.20%</div>
+                                </div>
+                            </div>
+                            <div style="width: 50%; padding-left: 8px;">
+                                <div style="background-color: #bbf7d0; height: 75px; position: relative; display: flex; align-items: center; justify-content: center;">
+                                    <div style="position: absolute; top: 0; width: 100%; text-align: center; font-size: 12px; padding-top: 4px;">Optimized</div>
+                                    <div>12.40%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Risk -->
+                    <div style="background-color: #f0f9ff; padding: 15px; border-radius: 8px;">
+                        <h3>Risk (Std Dev)</h3>
+                        <div style="display: flex; align-items: flex-end;">
+                            <div style="width: 50%; padding-right: 8px;">
+                                <div style="background-color: #bfdbfe; height: 60px; position: relative; display: flex; align-items: center; justify-content: center;">
+                                    <div style="position: absolute; top: 0; width: 100%; text-align: center; font-size: 12px; padding-top: 4px;">Current</div>
+                                    <div>9.50%</div>
+                                </div>
+                            </div>
+                            <div style="width: 50%; padding-left: 8px;">
+                                <div style="background-color: #bbf7d0; height: 60px; position: relative; display: flex; align-items: center; justify-content: center;">
+                                    <div style="position: absolute; top: 0; width: 100%; text-align: center; font-size: 12px; padding-top: 4px;">Optimized</div>
+                                    <div>9.80%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sharpe Ratio -->
+                    <div style="background-color: #f0f9ff; padding: 15px; border-radius: 8px;">
+                        <h3>Sharpe Ratio</h3>
+                        <div style="display: flex; align-items: flex-end;">
+                            <div style="width: 50%; padding-right: 8px;">
+                                <div style="background-color: #bfdbfe; height: 50px; position: relative; display: flex; align-items: center; justify-content: center;">
+                                    <div style="position: absolute; top: 0; width: 100%; text-align: center; font-size: 12px; padding-top: 4px;">Current</div>
+                                    <div>0.76</div>
+                                </div>
+                            </div>
+                            <div style="width: 50%; padding-left: 8px;">
+                                <div style="background-color: #bbf7d0; height: 60px; position: relative; display: flex; align-items: center; justify-content: center;">
+                                    <div style="position: absolute; top: 0; width: 100%; text-align: center; font-size: 12px; padding-top: 4px;">Optimized</div>
+                                    <div>0.84</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

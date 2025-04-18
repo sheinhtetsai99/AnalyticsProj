@@ -29,7 +29,7 @@ POINTS = 20
 TICKERS = ['SPY', 'QQQ', 'VWRA.L', 'VGK', 'EEM', 'VPL', 'AGG', 'TLT', 'LQD', 'GLD', 'SLV', 'VNQ', 'GSG']
 
 # Create visualisations directory if it doesn't exist
-os.makedirs('visualisations', exist_ok=True)
+os.makedirs('output/base_model', exist_ok=True)
 
 # Define ETF descriptions for better labeling
 ETF_DESCRIPTIONS = {
@@ -49,7 +49,7 @@ ETF_DESCRIPTIONS = {
 }
 
 # NEW FUNCTION: Save portfolio weights and metrics to JSON
-def save_portfolio_weights(portfolio_data, filename="optimal_portfolio.json"):
+def save_portfolio_weights(portfolio_data, filename="output/base_model/optimal_portfolio.json"):
     """Save portfolio weights and metrics to a JSON file"""
     # Convert pandas Series to dictionaries for JSON serialization
     serializable_data = {}
@@ -258,9 +258,9 @@ def plot_returns_vs_risk(annual_returns, annual_risks):
     plt.grid(True)
     
     # Save the figure
-    plt.savefig('visualisations/returns_vs_risk.png', dpi=300, bbox_inches='tight')
+    plt.savefig('output/base_model/returns_vs_risk.png', dpi=300, bbox_inches='tight')
     plt.close()
-    print("Returns vs Risk plot saved to 'visualisations/returns_vs_risk.png'")
+    print("Returns vs Risk plot saved to 'output/base_model/returns_vs_risk.png'")
 
 def plot_correlation_matrix(corr_matrix):
     """Plot the correlation matrix as a heatmap with asset descriptions"""
@@ -286,9 +286,9 @@ def plot_correlation_matrix(corr_matrix):
     plt.tight_layout()
     
     # Save the figure
-    plt.savefig('visualisations/correlation_matrix.png', dpi=300, bbox_inches='tight')
+    plt.savefig('output/base_model/correlation_matrix.png', dpi=300, bbox_inches='tight')
     plt.close()
-    print("Correlation matrix plot saved to 'visualisations/correlation_matrix.png'")
+    print("Correlation matrix plot saved to 'output/base_model/correlation_matrix.png'")
 
     # Also save a version with ticker symbols for reference
     plt.figure(figsize=(12, 10))
@@ -296,7 +296,7 @@ def plot_correlation_matrix(corr_matrix):
                 linewidths=0.5, fmt='.2f', cbar_kws={'label': 'Correlation'})
     plt.title('Asset Correlation Matrix (Ticker Symbols)')
     plt.tight_layout()
-    plt.savefig('visualisations/correlation_matrix_tickers.png', dpi=300, bbox_inches='tight')
+    plt.savefig('output/base_model/correlation_matrix_tickers.png', dpi=300, bbox_inches='tight')
     plt.close()
 
 def plot_efficient_frontier(efficient_portfolios, annual_returns, annual_risks, 
@@ -353,9 +353,9 @@ def plot_efficient_frontier(efficient_portfolios, annual_returns, annual_risks,
     plt.legend()
     
     # Save the figure
-    plt.savefig('visualisations/efficient_frontier.png', dpi=300, bbox_inches='tight')
+    plt.savefig('output/base_model/efficient_frontier.png', dpi=300, bbox_inches='tight')
     plt.close()
-    print("Efficient frontier plot saved to 'visualisations/efficient_frontier.png'")
+    print("Efficient frontier plot saved to 'output/base_model/efficient_frontier.png'")
 
 def plot_optimal_allocation(weights, title='Optimal Portfolio Allocation'):
     """Plot the optimal portfolio allocation as a pie chart with descriptive labels"""
@@ -373,9 +373,9 @@ def plot_optimal_allocation(weights, title='Optimal Portfolio Allocation'):
     
     # Save the figure
     filename = title.lower().replace(' ', '_') + '.png'
-    plt.savefig(f'visualisations/{filename}', dpi=300, bbox_inches='tight')
+    plt.savefig(f'output/base_model/{filename}', dpi=300, bbox_inches='tight')
     plt.close()
-    print(f"{title} plot saved to 'visualisations/{filename}'")
+    print(f"{title} plot saved to 'output/base_model/{filename}'")
 
 def plot_sharpe_ratios(efficient_portfolios, all_sharpe_ratios, risk_free_rate=0.03):
     """Plot Sharpe ratios along the efficient frontier"""
@@ -403,9 +403,9 @@ def plot_sharpe_ratios(efficient_portfolios, all_sharpe_ratios, risk_free_rate=0
     plt.grid(True)
     
     # Save the figure
-    plt.savefig('visualisations/sharpe_ratios.png', dpi=300, bbox_inches='tight')
+    plt.savefig('output/base_model/sharpe_ratios.png', dpi=300, bbox_inches='tight')
     plt.close()
-    print("Sharpe ratios plot saved to 'visualisations/sharpe_ratios.png'")
+    print("Sharpe ratios plot saved to 'output/base_model/sharpe_ratios.png'")
 
 def plot_portfolio_comparison(portfolios, risk_free_rate=0.03):
     """Plot a comparison of portfolio metrics"""
@@ -470,9 +470,9 @@ def plot_portfolio_comparison(portfolios, risk_free_rate=0.03):
     plt.tight_layout()
     
     # Save the figure
-    plt.savefig('visualisations/portfolio_comparison.png', dpi=300, bbox_inches='tight')
+    plt.savefig('output/base_model/portfolio_comparison.png', dpi=300, bbox_inches='tight')
     plt.close()
-    print("Portfolio comparison plot saved to 'visualisations/portfolio_comparison.png'")
+    print("Portfolio comparison plot saved to 'output/base_model/portfolio_comparison.png'")
 
 def print_asset_descriptions():
     """Print a summary of the assets being analyzed with their descriptions"""
@@ -624,11 +624,11 @@ def main():
     plot_portfolio_comparison(portfolio_data, RISK_FREE_RATE)
     
     # NEW: Save portfolio data to JSON file for use in the enhanced model
-    save_portfolio_weights(portfolio_data, "optimal_portfolio.json")
+    save_portfolio_weights(portfolio_data, "output/base_model/optimal_portfolio.json")
     
-    print("\nAll visualizations have been saved in the 'visualisations' folder.")
+    print("\nAll visualizations have been saved in the 'output/base_model' folder.")
     print(f"\nNote: All Sharpe ratio calculations use a risk-free rate of {RISK_FREE_RATE:.2%}")
-    print("\nOptimal portfolio data has been saved to 'optimal_portfolio.json' for use in the enhanced model.")
+    print("\nOptimal portfolio data has been saved to 'output/base_model/optimal_portfolio.json' for use in the enhanced model.")
 
 if __name__ == "__main__":
     try:

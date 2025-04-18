@@ -18,7 +18,7 @@ plt.rcParams['xtick.labelsize'] = 12
 plt.rcParams['ytick.labelsize'] = 12
 
 # Create output directory
-os.makedirs('final_visualization', exist_ok=True)
+os.makedirs('output/consolidated', exist_ok=True)
 
 # ETF descriptions for better labeling
 ETF_DESCRIPTIONS = {
@@ -606,8 +606,8 @@ def main():
     risk_free_rate = 0.03
     
     # Load data
-    model1_data = load_portfolio_data('optimal_portfolio.json')
-    model2_data = load_portfolio_data('enhanced_optimal_portfolio.json')
+    model1_data = load_portfolio_data('output/base_model/optimal_portfolio.json')
+    model2_data = load_portfolio_data('output/enhanced_model/enhanced_optimal_portfolio.json')
     
     if not model1_data or not model2_data:
         print("Failed to load portfolio data.")
@@ -617,7 +617,7 @@ def main():
     performance_fig = create_simple_charts(model1_data, model2_data, risk_free_rate)
     
     if performance_fig:
-        output_path = 'final_visualization/simplified_performance.png'
+        output_path = 'output/consolidated/simplified_performance.png'
         performance_fig.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.close(performance_fig)
         print(f"Simplified performance chart saved to '{output_path}'")
@@ -626,7 +626,7 @@ def main():
     heatmap_fig = create_portfolio_heatmap(model1_data, model2_data)
     
     if heatmap_fig:
-        heatmap_path = 'final_visualization/portfolio_heatmap.png'
+        heatmap_path = 'output/consolidated/portfolio_heatmap.png'
         heatmap_fig.savefig(heatmap_path, dpi=300, bbox_inches='tight')
         plt.close(heatmap_fig)
         print(f"Portfolio heatmap saved to '{heatmap_path}'")
@@ -635,7 +635,7 @@ def main():
     weights_fig = create_weight_comparison(model1_data, model2_data)
     
     if weights_fig:
-        weights_path = 'final_visualization/portfolio_weights.png'
+        weights_path = 'output/consolidated/portfolio_weights.png'
         weights_fig.savefig(weights_path, dpi=300, bbox_inches='tight')
         plt.close(weights_fig)
         print(f"Portfolio weights chart saved to '{weights_path}'")
@@ -644,7 +644,7 @@ def main():
     allocation_fig = create_allocation_visualization(model1_data, model2_data)
     
     if allocation_fig:
-        allocation_path = 'final_visualization/portfolio_allocation.png'
+        allocation_path = 'output/consolidated/portfolio_allocation.png'
         allocation_fig.savefig(allocation_path, dpi=300, bbox_inches='tight')
         plt.close(allocation_fig)
         print(f"Portfolio allocation chart saved to '{allocation_path}'")
@@ -653,7 +653,7 @@ def main():
     sector_fig = create_sector_allocation_visualization(model1_data, model2_data)
     
     if sector_fig:
-        sector_path = 'final_visualization/sector_allocation.png'
+        sector_path = 'output/consolidated/sector_allocation.png'
         sector_fig.savefig(sector_path, dpi=300, bbox_inches='tight')
         plt.close(sector_fig)
         print(f"Sector allocation chart saved to '{sector_path}'")

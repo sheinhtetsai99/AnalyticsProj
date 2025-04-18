@@ -61,7 +61,7 @@ SECTORS = {
 
 
 # Create visualisations_model2 directory if it doesn't exist
-os.makedirs('visualisations_model2', exist_ok=True)
+os.makedirs('output/enhanced_model', exist_ok=True)
 
 # Define ETF descriptions for better labeling
 ETF_DESCRIPTIONS = {
@@ -122,7 +122,7 @@ def calculate_returns_and_covariance(stock_data):
     return daily_returns, avg_annual_return, cov_matrix
 
 # 3. Save and load portfolio weights and metrics
-def save_portfolio_weights(portfolio_data, filename="optimal_portfolio.json"):
+def save_portfolio_weights(portfolio_data, filename="output/base_model/optimal_portfolio.json"):
     """Save portfolio weights and metrics to a JSON file"""
     # Convert pandas Series to dictionaries for JSON serialization
     serializable_data = {}
@@ -146,7 +146,7 @@ def save_portfolio_weights(portfolio_data, filename="optimal_portfolio.json"):
     
     print(f"Portfolio data saved to {filename}")
 
-def load_portfolio_weights(filename="optimal_portfolio.json"):
+def load_portfolio_weights(filename="output/base_model/optimal_portfolio.json"):
     """Load portfolio weights and metrics from a JSON file"""
     try:
         with open(filename, 'r') as f:
@@ -562,9 +562,9 @@ def plot_enhanced_efficient_frontier(efficient_portfolios, portfolio_data, risk_
         )
     
     # Save the figure
-    plt.savefig('visualisations_model2/enhanced_efficient_frontier.png', dpi=300, bbox_inches='tight')
+    plt.savefig('output/enhanced_model/enhanced_efficient_frontier.png', dpi=300, bbox_inches='tight')
     plt.close()
-    print("Enhanced efficient frontier plot saved to 'visualisations_model2/enhanced_efficient_frontier.png'")
+    print("Enhanced efficient frontier plot saved to 'output/enhanced_model/enhanced_efficient_frontier.png'")
 
 def plot_portfolio_comparison_enhanced(portfolio_data, risk_free_rate=RISK_FREE_RATE):
     """Plot enhanced comparison of portfolio strategies"""
@@ -631,9 +631,9 @@ def plot_portfolio_comparison_enhanced(portfolio_data, risk_free_rate=RISK_FREE_
     plt.tight_layout()
     
     # Save the figure to the model2 visualizations folder
-    plt.savefig('visualisations_model2/enhanced_portfolio_comparison.png', dpi=300, bbox_inches='tight')
+    plt.savefig('output/enhanced_model/enhanced_portfolio_comparison.png', dpi=300, bbox_inches='tight')
     plt.close()
-    print("Enhanced portfolio comparison saved to 'visualisations_model2/enhanced_portfolio_comparison.png'")
+    print("Enhanced portfolio comparison saved to 'output/enhanced_model/enhanced_portfolio_comparison.png'")
 
 def plot_weight_comparison(portfolio_data):
     """Plot comparison of weights across portfolio strategies"""
@@ -680,9 +680,9 @@ def plot_weight_comparison(portfolio_data):
     plt.tight_layout()
     
     # Save the figure to the model2 visualizations folder
-    plt.savefig('visualisations_model2/portfolio_weights_comparison.png', dpi=300, bbox_inches='tight')
+    plt.savefig('output/enhanced_model/portfolio_weights_comparison.png', dpi=300, bbox_inches='tight')
     plt.close()
-    print("Portfolio weights comparison saved to 'visualisations_model2/portfolio_weights_comparison.png'")
+    print("Portfolio weights comparison saved to 'output/enhanced_model/portfolio_weights_comparison.png'")
 
 def plot_sector_allocation(portfolio_data):
     """Plot sector allocation for the enhanced portfolio"""
@@ -704,12 +704,12 @@ def plot_sector_allocation(portfolio_data):
     plt.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle
     
     # Save the figure to the model2 visualizations folder
-    plt.savefig('visualisations_model2/sector_allocation.png', dpi=300, bbox_inches='tight')
+    plt.savefig('output/enhanced_model/sector_allocation.png', dpi=300, bbox_inches='tight')
     plt.close()
-    print("Sector allocation saved to 'visualisations_model2/sector_allocation.png'")
+    print("Sector allocation saved to 'output/enhanced_model/sector_allocation.png'")
 
 # Create a function to extract the optimal portfolio from model 1 results
-def get_optimal_portfolio(file_path="optimal_portfolio.json"):
+def get_optimal_portfolio(file_path="output/base_model/optimal_portfolio.json"):
     """
     Try to load the optimal portfolio from file. If not found, create a dummy placeholder.
     """
@@ -792,10 +792,10 @@ def main():
     if portfolio_data:
         save_portfolio_weights(
             {'Enhanced Optimal': portfolio_data['Enhanced Optimal']}, 
-            "enhanced_optimal_portfolio.json"
+            "output/enhanced_model/enhanced_optimal_portfolio.json"
         )
     
-    print("\nAll visualizations have been saved in the 'visualisations_model2' folder.")
+    print("\nAll visualizations have been saved in the 'output/enhanced_model' folder.")
 
 if __name__ == "__main__":
     try:
