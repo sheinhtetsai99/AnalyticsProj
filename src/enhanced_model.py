@@ -13,7 +13,7 @@ from gurobipy import Model, GRB, quicksum
 
 # Date range for analysis
 START_DATE = '2006-10-03'
-END_DATE = '2023-12-31'
+END_DATE = '2024-12-31'
 
 # Risk-free rate (annual)
 RISK_FREE_RATE = 0.03  # 3%
