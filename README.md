@@ -42,6 +42,33 @@ Run the scripts in this order:
 
 All outputs will be saved to the `output/` directory.
 
+### Running the Flask Mockup App
+
+To run the interactive mockup Flask application:
+
+1. Navigate to the project directory:
+   ```
+   cd mockup_app
+   ```
+
+2. Run the Flask application:
+   ```
+   python app.py
+   ```
+
+3. Open your web browser and go to:
+   ```
+   http://127.0.0.1:5000/
+   ```
+
+The mockup app provides an interactive interface with the following pages:
+- Client Overview (`/client-overview`)
+- Portfolio Analysis (`/portfolio-analysis`)
+- Constraints Editor (`/constraints-editor`)
+- Recommendations (`/recommendations`)
+
+The app runs in debug mode by default, allowing for automatic reloading when making changes to the templates.
+
 ## Project Files
 
 ### Main Scripts
